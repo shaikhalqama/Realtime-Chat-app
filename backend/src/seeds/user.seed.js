@@ -1,11 +1,11 @@
+import bcrypt from "bcryptjs";
 import { config } from "dotenv";
 import { connectDB } from "../lib/db.js";
 import User from "../models/user.model.js";
 
 config();
 
-const seedUsers = [
-  // Female Users
+const rawSeedUsers = [
   {
     email: "emma.thompson@example.com",
     fullName: "Emma Thompson",
@@ -54,8 +54,6 @@ const seedUsers = [
     password: "123456",
     profilePic: "https://randomuser.me/api/portraits/women/8.jpg",
   },
-
-  // Male Users
   {
     email: "james.anderson@example.com",
     fullName: "James Anderson",
@@ -104,6 +102,14 @@ const seedDatabase = async () => {
   try {
     await connectDB();
 
+    const seedUsers = await Promise.all(
+      rawSeedUsers.map(async (user) => ({
+        ...user,
+        email: user.email.toLowerCase(),
+        password: await bcrypt.hash(user.password, 10),
+      }))
+    );
+
     await User.insertMany(seedUsers);
     console.log("Database seeded successfully");
   } catch (error) {
@@ -111,5 +117,4 @@ const seedDatabase = async () => {
   }
 };
 
-// Call the function
 seedDatabase();
