@@ -3,7 +3,9 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 
+import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 
 import { connectDB } from "./lib/db.js";
 
@@ -16,8 +18,10 @@ dotenv.config();
 
 
 const PORT = process.env.PORT || 5001;
-const __dirname = path.resolve();
-const frontendDistPath = path.join(__dirname, "frontend", "dist");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const frontendDistPath = path.resolve(__dirname, "../../frontend/dist");
+const hasFrontendBuild = fs.existsSync(frontendDistPath);
 const isProduction = process.env.NODE_ENV === "production";
 
 app.use(express.json());
@@ -33,7 +37,7 @@ if (!isProduction) {
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 
-if (isProduction) {
+if (isProduction || hasFrontendBuild) {
    app.use(express.static(frontendDistPath));
 
    // Avoid wildcard route syntax differences in Express 5 and only
