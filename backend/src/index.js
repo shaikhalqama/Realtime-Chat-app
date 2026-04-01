@@ -17,7 +17,7 @@ dotenv.config();
 
 const PORT = process.env.PORT || 5001;
 const __dirname = path.resolve();
-const frontendDistPath = path.join(__dirname, "../frontend/dist");
+const frontendDistPath = path.join(__dirname, "frontend", "dist");
 const isProduction = process.env.NODE_ENV === "production";
 
 app.use(express.json());
@@ -36,8 +36,17 @@ app.use("/api/messages", messageRoutes);
 if (isProduction) {
    app.use(express.static(frontendDistPath));
 
-   // Express 5 requires named wildcards for SPA catch-all routes.
-   app.get("/{*splat}", (req, res) => {
+   // Avoid wildcard route syntax differences in Express 5 and only
+   // serve the SPA shell for browser navigations outside the API.
+   app.use((req, res, next) => {
+      if (
+         req.method !== "GET" ||
+         req.path.startsWith("/api") ||
+         !req.accepts("html")
+      ) {
+         return next();
+      }
+
       res.sendFile(path.join(frontendDistPath, "index.html"));
    });
 }
