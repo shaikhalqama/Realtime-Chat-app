@@ -3,6 +3,17 @@ import cloudinary from "../lib/cloudinary.js";
 import { generateToken } from "../lib/utils.js";
 import User from "../models/user.model.js";
 
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const findUserByEmail = async (email) => {
+    return User.findOne({
+        email: {
+            $regex: `^${escapeRegex(email)}$`,
+            $options: "i",
+        },
+    });
+};
+
 export const signup = async (req, res) => {
     const { fullName, email, password } = req.body;
 
@@ -18,7 +29,7 @@ export const signup = async (req, res) => {
             return res.status(400).json({ message: "Password must be at least 6 characters long" });
         }
 
-        const user = await User.findOne({ email: normalizedEmail });
+        const user = await findUserByEmail(normalizedEmail);
         if (user) {
             return res.status(400).json({ message: "Email already exists" });
         }
@@ -52,10 +63,15 @@ export const login = async (req, res) => {
 
     try {
         const normalizedEmail = email?.trim().toLowerCase();
-        const user = await User.findOne({ email: normalizedEmail });
+        const user = await findUserByEmail(normalizedEmail);
 
         if (!user || !password) {
             return res.status(400).json({ message: "Invalid Credentials" });
+        }
+
+        if (user.email !== normalizedEmail) {
+            user.email = normalizedEmail;
+            await user.save();
         }
 
         const isHashedPassword = /^\$2[aby]\$\d{2}\$/.test(user.password);
